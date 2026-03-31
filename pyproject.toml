@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdsmp-scheduler"
+version = "0.1.0"
+description = "SDSmp Cybersecurity Job Scheduler - RL Environment for VM-based security workload optimization"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "pydantic>=2.0.0",
+    "uvicorn>=0.24.0",
+    "requests>=2.31.0",
+    "openai>=1.0.0",
+    "numpy>=1.24.0",
+    "websockets>=12.0",
+    "torch>=2.0.0",
+    "gymnasium>=0.29.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+sdsmp-server = "server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["server"]

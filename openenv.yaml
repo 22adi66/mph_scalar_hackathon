@@ -1,0 +1,40 @@
+env_meta:
+  name: "SDSmp Cybersecurity Scheduler Environment"
+  version: "1.0.0"
+  description: |
+    An OpenEnv-compliant reinforcement learning environment mirroring the
+    Real-Time Cost Optimization in Software-Defined Security Middle Platforms.
+    Agents must dynamically route compute and I/O intensive security jobs 
+    under varying DDoS workload conditions.
+  authors:
+    - "Researcher"
+  domain: "Cybersecurity & Cost Optimization"
+  tags:
+    - scheduling
+    - ddos-survival
+    - deep-reinforcement-learning
+    - sdsmp
+  url: "https://huggingface.co/spaces/MyName/SDSmp-Env"
+
+tasks:
+  - id: "easy"
+    name: "Phase 1: Low-Frequency Smp Mode"
+    description: "Minimize cost during low-intensity traffic."
+  - id: "medium"
+    name: "Phase 2: Random Burst Mode"
+    description: "Balance Cost and QoS Rate during unpredictable traffic."
+  - id: "hard"
+    name: "Phase 3: High-Frequency DDoS Mode"
+    description: "Survive the traffic burst by perfectly balancing workloads across VMs."
+
+schemas:
+  action_class: "models.SdsmpAction"
+  observation_class: "models.SdsmpObservation"
+  state_class: "models.SdsmpState"
+
+deployment:
+  health_check:
+    endpoint: "/health"
+    timeout_s: 10
+    retries: 3
+  port: 8000
