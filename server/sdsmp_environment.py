@@ -103,8 +103,14 @@ class SdsmpEnvironment:
                 reward = 0.0 # Invalid schedule = 0 reward
                 
         # Advance simulation time
-        self.sim.advance_time(50.0)
+        dropped_jobs = self.sim.advance_time(50.0)
         
+        if dropped_jobs > 0:
+            self.state.qos_failed_count += dropped_jobs
+            self.state.processed_jobs_count += dropped_jobs
+            reward = 0.0 # Force reward to 0 if jobs were allowed to drop
+            msg += f" [CRITICAL ALARM: {dropped_jobs} job(s) timed out in pending queue and were dropped!]"
+            
         self.state.cumulative_reward += reward
         self.episode_log.append(msg)
         

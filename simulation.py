@@ -70,7 +70,7 @@ class SdsmpSimulation:
                 "arrival_time": self.time_ms
             })
 
-    def advance_time(self, step_duration_ms: float = 50.0):
+    def advance_time(self, step_duration_ms: float = 50.0) -> int:
         """Moves environment time forward, clearing VM queues naturally."""
         self.time_ms += step_duration_ms
         for vm in self.vms.values():
@@ -82,8 +82,25 @@ class SdsmpSimulation:
                 else:
                     vm["current_queue_length"] = max(1, int(vm["wait_time_ms"] / 50.0))
         
+        # Identify jobs that died while sitting in the pending queue
+        dropped_count = 0
+        still_pending = []
+        for job in self.pending_jobs:
+            if self.time_ms > (job["arrival_time"] + job["qos_deadline_ms"]):
+                dropped_count += 1
+                job["qos_met"] = False
+                job["response_time_ms"] = self.time_ms - job["arrival_time"]
+                job["cost"] = 0.0
+                job["assigned_vm"] = "TIMEOUT_DROP"
+                self.completed_jobs.append(job)
+            else:
+                still_pending.append(job)
+                
+        self.pending_jobs = still_pending
+        
         # New jobs arrive at each time step
         self._generate_jobs()
+        return dropped_count
 
     def schedule_job(self, job_id: str, vm_id: str) -> Tuple[bool, str, float, bool]:
         """
