@@ -90,20 +90,17 @@ class SdsmpEnvironment:
                 if not qos_met:
                     self.state.qos_failed_count += 1
                     
-                # Equation 10 from paper: Nonlinear reward R = R_cost * R_QoS
-                r_qos = 1.0 if qos_met else -1.0
-                
-                lambda_baseline_cost = 0.05
-                j_cost = job_cost
-                cost_penalty = -(2.0 / math.pi) * math.atan(j_cost - lambda_baseline_cost)
-                
+                # Hackathon Requirement: Reward MUST be strictly bounded [0.0, 1.0]
                 if qos_met:
-                    reward = r_qos + cost_penalty
+                    # Base reward of 0.5 for meeting QoS deadline
+                    # Additional reward up to 0.5 based on how cheap the execution was
+                    cost_bonus = 0.5 * math.exp(-job_cost * 20.0) 
+                    reward = 0.5 + cost_bonus
                 else:
-                    reward = -2.0 # Severe penalty for missing QoS
+                    reward = 0.0 # QoS failed = 0 reward
                     
             else:
-                reward = -0.5 # Penalty for invalid schedule
+                reward = 0.0 # Invalid schedule = 0 reward
                 
         # Advance simulation time
         self.sim.advance_time(50.0)

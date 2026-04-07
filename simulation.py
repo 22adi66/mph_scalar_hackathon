@@ -113,9 +113,16 @@ class SdsmpSimulation:
         wait_time = vm["wait_time_ms"]
         response_time = wait_time + base_exec_time
         
-        # Cost is calculated based strictly on runtime (Formula 8 from paper)
+        # Determine thermal/cooling state (Real-world complexity injection)
+        # If the VM queue is severely backed up (>4 jobs), it requires intense
+        # cooling power, significantly multiplying base infrastructural cost.
+        cooling_multiplier = 1.0
+        if vm["current_queue_length"] >= 4:
+            cooling_multiplier = 1.5 + (0.1 * (vm["current_queue_length"] - 4))
+            
+        # Cost is calculated based strictly on runtime (Formula 8 from paper) modified by cooling
         # Cost in cents roughly
-        job_cost = (base_exec_time / 3600000.0) * vm["hourly_cost"] * 1000.0
+        job_cost = ((base_exec_time / 3600000.0) * vm["hourly_cost"] * 1000.0) * cooling_multiplier
         self.total_cost += job_cost
 
         # Update VM state
@@ -135,6 +142,9 @@ class SdsmpSimulation:
         self.pending_jobs.remove(job)
         
         msg = f"Job {job_id} assigned to {vm_id}. Resp_Time: {response_time:.1f}ms (QoS:{'PASS' if qos_met else 'FAIL'})"
+        if cooling_multiplier > 1.0:
+            msg += f" [THERMAL WARNING: VM queue overloaded. Cooling cost multiplier {cooling_multiplier:.1f}x applied.]"
+            
         return True, msg, job_cost, qos_met
 
     def get_metrics(self) -> Dict:
