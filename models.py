@@ -16,12 +16,12 @@ class VmInfo(BaseModel):
     hourly_cost: float = Field(description="Cost per hour of running this VM")
 
 class SdsmpAction(BaseModel):
-    command: Literal["schedule_job", "noop", "submit_evaluation"] = Field(
+    command: Literal["schedule_batch", "noop", "submit_evaluation"] = Field(
         ..., description="The action to perform in the SDSmp."
     )
     parameters: Dict[str, Any] = Field(
         default_factory=dict,
-        description="For schedule_job, provide 'job_id' and 'vm_id'."
+        description="For schedule_batch, provide 'assignments': [{'job_id': 'x', 'vm_id': 'y'}, ...]"
     )
     metadata: Dict[str, Any] = Field(default_factory=dict)
 

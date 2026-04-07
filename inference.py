@@ -87,11 +87,11 @@ def run_task(client: OpenAI, task_id: str) -> None:
         "- Route `io-intensive` jobs EXCLUSIVELY to `high-io` VMs.\n"
         "If you mismatch job processing capability, execution time incurs a massive 5x penalty, leading to system crash.\n\n"
         "Available Actions (Respond with JSON only):\n"
-        "1. {\"command\": \"schedule_job\", \"parameters\": {\"job_id\": \"<ID>\", \"vm_id\": \"<VM_ID>\"}}\n"
+        "1. {\"command\": \"schedule_batch\", \"parameters\": {\"assignments\": [{\"job_id\": \"<ID1>\", \"vm_id\": \"<VM1>\"}, {\"job_id\": \"<ID2>\", \"vm_id\": \"<VM2>\"}]}}\n"
         "2. {\"command\": \"noop\", \"parameters\": {}}\n"
         "3. {\"command\": \"submit_evaluation\", \"parameters\": {}}\n\n"
         f"Task Description: {task['description']}\n"
-        "Analyze pending jobs, identify their type, and route them to matching VMs with the lowest pending queue size."
+        "Analyze ALL pending jobs, identify their types, and route ALL of them simultaneously in a single schedule_batch command to processing VMs."
     )
 
     messages = [{"role": "system", "content": system_msg}]
@@ -110,7 +110,7 @@ def run_task(client: OpenAI, task_id: str) -> None:
 
             user_content = (
                 f"Task: {task['name']}\n"
-                f"Pending Jobs (First 5):\n{json.dumps(obs_data['pending_jobs'][:5], indent=2)}\n\n"
+                f"Pending Jobs (Process ALL):\n{json.dumps(obs_data['pending_jobs'], indent=2)}\n\n"
                 f"Smp VMs:\n{json.dumps(obs_data['smp_vms'], indent=2)}\n\n"
                 f"Feedback from last step: {obs_data.get('execution_log', 'None')}\n"
                 f"Metrics: Cost=${obs_data['current_cost']:.2f}, QoS={obs_data['qos_satisfaction_rate']:.2f}\n"

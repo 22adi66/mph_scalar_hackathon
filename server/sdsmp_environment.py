@@ -77,31 +77,35 @@ class SdsmpEnvironment:
             msg = "Evaluation submitted."
             return self._get_obs(msg, done)
             
-        elif action.command == "schedule_job":
-            job_id = action.parameters.get("job_id", "")
-            vm_id = action.parameters.get("vm_id", "")
+        elif action.command == "schedule_batch":
+            assignments = action.parameters.get("assignments", [])
+            total_reward = 0.0
+            msgs = []
             
-            success, log_msg, job_cost, qos_met = self.sim.schedule_job(job_id, vm_id)
-            msg = log_msg
-            
-            if success:
-                self.state.current_cost += job_cost
-                self.state.processed_jobs_count += 1
-                if not qos_met:
-                    self.state.qos_failed_count += 1
-                    
-                # Hackathon Requirement: Reward MUST be strictly bounded [0.0, 1.0]
-                if qos_met:
-                    # Base reward of 0.5 for meeting QoS deadline
-                    # Additional reward up to 0.5 based on how cheap the execution was
-                    cost_bonus = 0.5 * math.exp(-job_cost * 20.0) 
-                    reward = 0.5 + cost_bonus
-                else:
-                    reward = 0.0 # QoS failed = 0 reward
-                    
-            else:
-                reward = 0.0 # Invalid schedule = 0 reward
+            for assignment in assignments:
+                job_id = assignment.get("job_id", "")
+                vm_id = assignment.get("vm_id", "")
                 
+                success, log_msg, job_cost, qos_met = self.sim.schedule_job(job_id, vm_id)
+                msgs.append(log_msg)
+                
+                if success:
+                    self.state.current_cost += job_cost
+                    self.state.processed_jobs_count += 1
+                    if not qos_met:
+                        self.state.qos_failed_count += 1
+                        
+                    if qos_met:
+                        cost_bonus = 0.5 * math.exp(-job_cost * 20.0) 
+                        total_reward += 0.5 + cost_bonus
+            
+            if assignments:
+                reward = total_reward / len(assignments)
+            else:
+                reward = 0.0
+                
+            msg = " | ".join(msgs) if msgs else "No valid assignments submitted in batch."
+            
         # Advance simulation time
         dropped_jobs = self.sim.advance_time(50.0)
         

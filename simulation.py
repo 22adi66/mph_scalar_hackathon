@@ -31,7 +31,7 @@ class SdsmpSimulation:
             self.vms[vid] = {
                 "vm_id": vid,
                 "vm_type": "high-cpu",
-                "speed_mips": 1000.0,
+                "speed_mips": 5000.0,
                 "current_queue_length": 0,
                 "wait_time_ms": 0.0,  # Accumulator for current queue
                 "hourly_cost": 0.15
@@ -41,7 +41,7 @@ class SdsmpSimulation:
             self.vms[vid] = {
                 "vm_id": vid,
                 "vm_type": "high-io",
-                "speed_mips": 1000.0,
+                "speed_mips": 5000.0,
                 "current_queue_length": 0,
                 "wait_time_ms": 0.0,
                 "hourly_cost": 0.15
