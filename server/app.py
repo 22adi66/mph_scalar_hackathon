@@ -92,7 +92,7 @@ async def step(req: Optional[Dict[str, Any]] = Body(default_factory=dict)):
 
 @app.get("/state")
 async def get_state():
-    return _env.state.model_dump()
+    return _env.state().model_dump()
 
 @app.post("/grader")
 async def grader():

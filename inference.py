@@ -73,7 +73,7 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
+    print(f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}", flush=True)
 
 
 def run_task(client: OpenAI, task_id: str) -> None:
@@ -90,12 +90,15 @@ def run_task(client: OpenAI, task_id: str) -> None:
         "- Route `compute-intensive` jobs EXCLUSIVELY to `high-cpu` VMs.\n"
         "- Route `io-intensive` jobs EXCLUSIVELY to `high-io` VMs.\n"
         "If you mismatch job processing capability, execution time incurs a massive 5x penalty, leading to system crash.\n\n"
+        "NEW ARCHITECTURE RULES:\n"
+        "1. PRIORITY QUEUES: Jobs now have a `priority` ('LOW', 'NORMAL', 'CRITICAL'). You MUST schedule 'CRITICAL' jobs immediately to avoid dropping zero-day alerts, even if it means leaving 'LOW' jobs in the queue to save thermal costs.\n"
+        "2. DAG WORKFLOWS: Jobs may have a `depends_on` list. You CANNOT schedule a job until all jobs listed in its `depends_on` array have been successfully processed in a previous step. Attempts to do so will result in an execution block.\n\n"
         "Available Actions (Respond with JSON only):\n"
         "1. {\"command\": \"schedule_batch\", \"parameters\": {\"assignments\": [{\"job_id\": \"<ID1>\", \"vm_id\": \"<VM1>\"}, {\"job_id\": \"<ID2>\", \"vm_id\": \"<VM2>\"}]}}\n"
         "2. {\"command\": \"noop\", \"parameters\": {}}\n"
         "3. {\"command\": \"submit_evaluation\", \"parameters\": {}}\n\n"
         f"Task Description: {task['description']}\n"
-        "Analyze ALL pending jobs, identify their types, and route ALL of them simultaneously in a single schedule_batch command to processing VMs."
+        "Analyze pending jobs carefully, prioritize 'CRITICAL' jobs, respect job dependencies, and pack them efficiently."
     )
 
     messages = [{"role": "system", "content": system_msg}]
@@ -112,13 +115,31 @@ def run_task(client: OpenAI, task_id: str) -> None:
             if obs.done:
                 break
 
+            # Sort pending jobs: CRITICAL first for LLM clarity
+            pending_sorted = sorted(
+                obs_data['pending_jobs'],
+                key=lambda j: {"CRITICAL": 0, "NORMAL": 1, "LOW": 2}.get(j.get("priority", "NORMAL"), 1)
+            )
+            critical_pending = [j for j in pending_sorted if j.get("priority") == "CRITICAL"]
+            critical_warning = (
+                f"\n⚠️  ZERO-DAY ALERT: {len(critical_pending)} CRITICAL job(s) MUST be scheduled THIS step or they will TIMEOUT and heavily penalize your score!\n"
+                if critical_pending else ""
+            )
+
             user_content = (
-                f"Task: {task['name']}\n"
-                f"Pending Jobs (Process ALL):\n{json.dumps(obs_data['pending_jobs'], indent=2)}\n\n"
-                f"Smp VMs:\n{json.dumps(obs_data['smp_vms'], indent=2)}\n\n"
-                f"Feedback from last step: {obs_data.get('execution_log', 'None')}\n"
-                f"Metrics: Cost=${obs_data['current_cost']:.2f}, QoS={obs_data['qos_satisfaction_rate']:.2f}\n"
-                "Pick your next action. Use JSON strictly."
+                f"Step {step}/{MAX_STEPS} | Task: {task['name']}\n"
+                f"{critical_warning}"
+                f"Pending Jobs (CRITICAL listed first — check depends_on before scheduling):\n"
+                f"{json.dumps(pending_sorted, indent=2)}\n\n"
+                f"Available VMs:\n{json.dumps(obs_data['smp_vms'], indent=2)}\n\n"
+                f"Last Action Feedback: {obs_data.get('execution_log', 'None')}\n"
+                f"Metrics: Cost=${obs_data['current_cost']:.4f} | QoS={obs_data['qos_satisfaction_rate']:.2f} | AvgResp={obs_data['avg_response_time_ms']:.1f}ms\n\n"
+                "SCHEDULING RULES:\n"
+                "1. MUST schedule CRITICAL jobs immediately - they expire next step.\n"
+                "2. Check depends_on — if a job lists other job IDs, those MUST already be completed.\n"
+                "3. Match job_type to vm_type: compute-intensive→high-cpu, io-intensive→high-io.\n"
+                "4. Spread load across VMs (avoid piling up on one VM — triggers thermal cost spike).\n\n"
+                "Output ONLY valid JSON action. No explanation."
             )
 
             messages.append({"role": "user", "content": user_content})
@@ -130,7 +151,7 @@ def run_task(client: OpenAI, task_id: str) -> None:
                     model=MODEL_NAME,
                     messages=messages,
                     temperature=0.1,
-                    max_tokens=300,
+                    max_tokens=600,
                 )
                 assistant_text = response.choices[0].message.content or ""
             except Exception as e:

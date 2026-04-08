@@ -7,6 +7,8 @@ class JobInfo(BaseModel):
     required_mips: float = Field(description="Processing capacity required in MIPS")
     qos_deadline_ms: float = Field(description="Maximum allowed response time before QoS fails")
     arrival_time: float = Field(description="Simulation timestamp when job arrived")
+    priority: str = Field(description="Urgency: 'LOW', 'NORMAL', or 'CRITICAL'")
+    depends_on: List[str] = Field(description="List of job_ids that MUST finish before this job can be scheduled", default_factory=list)
 
 class VmInfo(BaseModel):
     vm_id: str = Field(description="Unique ID for the Smp virtual machine resource")
@@ -55,3 +57,5 @@ class SdsmpState(BaseModel):
     cumulative_reward: float = 0.0
     processed_jobs_count: int = 0
     qos_failed_count: int = 0
+    critical_dropped_count: int = 0
+    total_jobs_arrived: int = 0

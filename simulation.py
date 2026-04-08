@@ -31,7 +31,7 @@ class SdsmpSimulation:
             self.vms[vid] = {
                 "vm_id": vid,
                 "vm_type": "high-cpu",
-                "speed_mips": 5000.0,
+                "speed_mips": 2000.0,
                 "current_queue_length": 0,
                 "wait_time_ms": 0.0,  # Accumulator for current queue
                 "hourly_cost": 0.15
@@ -41,7 +41,7 @@ class SdsmpSimulation:
             self.vms[vid] = {
                 "vm_id": vid,
                 "vm_type": "high-io",
-                "speed_mips": 5000.0,
+                "speed_mips": 2000.0,
                 "current_queue_length": 0,
                 "wait_time_ms": 0.0,
                 "hourly_cost": 0.15
@@ -56,21 +56,43 @@ class SdsmpSimulation:
         else:
             num_jobs = self.rng.randint(6, 10) # High frequency (60-80) DDoS scenario
             
+        generated_in_batch = []
         for _ in range(num_jobs):
             self.job_counter += 1
             jtype = self.rng.choice(["compute-intensive", "io-intensive"])
             mips = max(50.0, self.rng.gauss(100.0, 20.0))
-            qos = self.rng.uniform(250.0, 450.0) # ms expectation
+            
+            p_roll = self.rng.random()
+            if p_roll < 0.2:
+                priority = "CRITICAL"
+                qos = 150.0  # 3-step window: critical but achievable
+            elif p_roll < 0.6:
+                priority = "NORMAL"
+                qos = 400.0
+            else:
+                priority = "LOW"
+                qos = 2000.0
+
+            job_id = f"job-{self.job_counter}"
+
+            # CRITICAL jobs must NEVER have dependencies — they must be schedulable immediately
+            depends_on = []
+            if priority != "CRITICAL" and len(generated_in_batch) > 0 and self.rng.random() < 0.3:
+                depends_on.append(generated_in_batch[-1])
+
+            generated_in_batch.append(job_id)
             
             self.pending_jobs.append({
-                "job_id": f"job-{self.job_counter}",
+                "job_id": job_id,
                 "job_type": jtype,
                 "required_mips": mips,
                 "qos_deadline_ms": qos,
-                "arrival_time": self.time_ms
+                "arrival_time": self.time_ms,
+                "priority": priority,
+                "depends_on": depends_on
             })
 
-    def advance_time(self, step_duration_ms: float = 50.0) -> int:
+    def advance_time(self, step_duration_ms: float = 50.0) -> Tuple[int, int]:
         """Moves environment time forward, clearing VM queues naturally."""
         self.time_ms += step_duration_ms
         for vm in self.vms.values():
@@ -84,10 +106,13 @@ class SdsmpSimulation:
         
         # Identify jobs that died while sitting in the pending queue
         dropped_count = 0
+        critical_dropped = 0
         still_pending = []
         for job in self.pending_jobs:
             if self.time_ms > (job["arrival_time"] + job["qos_deadline_ms"]):
                 dropped_count += 1
+                if job.get("priority") == "CRITICAL":
+                    critical_dropped += 1
                 job["qos_met"] = False
                 job["response_time_ms"] = self.time_ms - job["arrival_time"]
                 job["cost"] = 0.0
@@ -100,7 +125,7 @@ class SdsmpSimulation:
         
         # New jobs arrive at each time step
         self._generate_jobs()
-        return dropped_count
+        return dropped_count, critical_dropped
 
     def schedule_job(self, job_id: str, vm_id: str) -> Tuple[bool, str, float, bool]:
         """
@@ -115,6 +140,12 @@ class SdsmpSimulation:
         vm = self.vms.get(vm_id)
         if not vm:
             return False, f"VM {vm_id} not found in resource pool.", 0.0, False
+
+        # Check DAG Dependencies
+        for dep_id in job.get("depends_on", []):
+            dep_completed = next((j for j in self.completed_jobs if j["job_id"] == dep_id), None)
+            if not dep_completed or not dep_completed.get("qos_met", False):
+                return False, f"[DAG BLOCK] Job {job_id} blocked. Dependency {dep_id} has not successfully completed.", 0.0, False
 
         # Calculate actual execution time base
         base_exec_time = (job["required_mips"] / vm["speed_mips"]) * 1000.0 # ms
