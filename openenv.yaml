@@ -14,7 +14,7 @@ env_meta:
     - ddos-survival
     - deep-reinforcement-learning
     - sdsmp
-  url: "https://huggingface.co/spaces/22adi66/mph_scalar_hackathon"
+  url: "https://huggingface.co/spaces/Adithya26/sdsmp-scheduler"
 
 tasks:
   - id: "easy"
