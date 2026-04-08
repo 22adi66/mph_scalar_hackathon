@@ -15,6 +15,10 @@ except ImportError:
     from server.sdsmp_environment import SdsmpEnvironment, TASKS
 
 
+def _clamp_score(score: float) -> float:
+    return round(float(max(0.01, min(0.99, score))), 4)
+
+
 SYSTEM_PROMPT = """You are an autonomous Software-Defined Security Middle Platform (SDSmp) Job Scheduler Assistant.
 
 Your objective is to route incoming security jobs to the available pool of Virtual Machines in real-time.
@@ -87,7 +91,7 @@ def run_single_task(
     try:
         from openai import OpenAI
     except ImportError:
-        return {"score": 0.0, "details": "openai package not installed.", "steps": 0, "trajectory": []}
+        return {"score": _clamp_score(0.01), "details": "openai package not installed.", "steps": 0, "trajectory": []}
 
     client = OpenAI(api_key=api_key, base_url=api_base_url)
     env = SdsmpEnvironment()
@@ -175,7 +179,7 @@ def run_single_task(
         if len(messages) > 4:
             messages = messages[:1] + messages[-3:]
 
-    grade = env.get_grade()
+    grade = _clamp_score(env.get_grade())
     result = {"score": grade, "details": "Score generated", "steps": steps, "trajectory": trajectory}
     return result
 

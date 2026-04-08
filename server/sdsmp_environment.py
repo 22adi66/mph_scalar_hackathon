@@ -191,4 +191,4 @@ class SdsmpEnvironment:
             return graders.grade_task_medium(self._state)
         elif self.task_id == "hard":
             return graders.grade_task_hard(self._state)
-        return 0.001
+        return 0.01

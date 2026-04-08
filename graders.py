@@ -41,15 +41,15 @@ def grade_task_easy(state: SdsmpState) -> float:
     Weights: cost 60%, qos 40%.
 
     Anti-hacks enforced:
-      - No jobs processed at all → 0.001
+      - No jobs processed at all → 0.01
       - Throughput < 25% overall → proportional multiplier
       - Any CRITICAL job dropped → score hard-capped at 0.4
     """
     if state.step_count < 10:
-        return 0.001
+        return 0.01
 
     if state.processed_jobs_count == 0:
-        return 0.001
+        return 0.01
 
     # Cost component: expects low cost relative to jobs processed
     cost_score = max(0.0, 1.0 - (
@@ -80,15 +80,15 @@ def grade_task_medium(state: SdsmpState) -> float:
     Weights: cost 45%, qos 55%.
 
     Anti-hacks enforced:
-      - No jobs processed → 0.001
+      - No jobs processed → 0.01
       - Throughput < 25% → proportional multiplier
       - CRITICAL jobs dropped → capped at 0.4
     """
     if state.step_count < 10:
-        return 0.001
+        return 0.01
 
     if state.processed_jobs_count == 0:
-        return 0.001
+        return 0.01
 
     # Cost component: moderate cost tolerance for bursty workloads
     cost_score = max(0.0, 1.0 - (
@@ -118,15 +118,15 @@ def grade_task_hard(state: SdsmpState) -> float:
     Weights: qos 80%, cost 20%.
 
     Anti-hacks enforced:
-      - No jobs processed → 0.001
+      - No jobs processed → 0.01
       - Throughput < 25% → proportional multiplier
       - CRITICAL jobs dropped → capped at 0.4
     """
     if state.step_count < 10:
-        return 0.001
+        return 0.01
 
     if state.processed_jobs_count == 0:
-        return 0.001
+        return 0.01
 
     # QoS component: at DDoS intensity, surviving 40%+ is already impressive
     qos_component = _qos_component(state, min_acceptable=0.4)
