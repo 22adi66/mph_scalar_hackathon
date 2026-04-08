@@ -1,3 +1,12 @@
+---
+title: SDSmp Scheduler
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # SDSmp Cybersecurity Scheduler Environment
 
 Welcome to the **Software-Defined Security Middle Platform (SDSmp) Job Scheduler**, a rigorous, OpenAI Gym / OpenEnv-compliant reinforcement learning environment. 

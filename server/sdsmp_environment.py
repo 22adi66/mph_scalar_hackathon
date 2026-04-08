@@ -148,6 +148,10 @@ class SdsmpEnvironment:
             task_description=self.task_description
         )
 
+    def close(self) -> None:
+        """No-op cleanup — required by OpenEnv interface."""
+        pass
+
     def get_grade(self) -> float:
         if self.task_id == "easy":
             return graders.grade_task_easy(self.state)

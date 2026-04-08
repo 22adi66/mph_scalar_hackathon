@@ -8,9 +8,10 @@ import os
 import traceback
 from typing import Any, Dict
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
+from typing import Optional
 
 try:
     from .sdsmp_environment import SdsmpEnvironment, TASKS
@@ -74,7 +75,9 @@ class StepRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 @app.post("/reset")
-async def reset(req: ResetRequest):
+async def reset(req: Optional[ResetRequest] = Body(None)):
+    if req is None:
+        req = ResetRequest()
     obs = _env.reset(seed=req.seed, task_id=req.task_id, episode_id=req.episode_id or None)
     return obs.model_dump()
 

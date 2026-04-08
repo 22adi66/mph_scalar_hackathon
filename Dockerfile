@@ -7,32 +7,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Copy project definition first for better layer caching
 COPY pyproject.toml /app/
+COPY requirements.txt /app/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    fastapi>=0.115.0 \
-    pydantic>=2.0.0 \
-    uvicorn>=0.24.0 \
-    requests>=2.31.0 \
-    openai>=1.0.0 \
-    numpy>=1.24.0 \
-    websockets>=12.0
+# Install Python dependencies from requirements.txt (lightweight, no torch/gymnasium)
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy environment code
+# Copy all environment code
 COPY . /app/env/
 
-# Set Python path
+# Set Python path so server/ can import sibling modules (models, simulation, graders)
 ENV PYTHONPATH="/app/env:$PYTHONPATH"
-ENV PORT=8000
+ENV PORT=7860
 
 # Expose port
-EXPOSE 8000
+EXPOSE 7860
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Run the FastAPI server
 CMD ["sh", "-c", "cd /app/env && python -m uvicorn server.app:app --host 0.0.0.0 --port ${PORT}"]

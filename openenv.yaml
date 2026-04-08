@@ -14,7 +14,7 @@ env_meta:
     - ddos-survival
     - deep-reinforcement-learning
     - sdsmp
-  url: "https://huggingface.co/spaces/MyName/SDSmp-Env"
+  url: "https://huggingface.co/spaces/22adi66/mph_scalar_hackathon"
 
 tasks:
   - id: "easy"
@@ -37,4 +37,4 @@ deployment:
     endpoint: "/health"
     timeout_s: 10
     retries: 3
-  port: 8000
+  port: 7860
