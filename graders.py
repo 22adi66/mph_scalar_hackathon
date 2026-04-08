@@ -7,7 +7,7 @@ def grade_task_easy(state: SdsmpState) -> float:
     Prioritizes cost optimization as resources are abundant.
     """
     if state.step_count < 10:
-        return 0.0
+        return 0.001
         
     qos_rate = 1.0
     if state.processed_jobs_count > 0:
@@ -15,13 +15,13 @@ def grade_task_easy(state: SdsmpState) -> float:
         
     # In low traffic, we expect near 100% QoS. If it falls, score plummets.
     if qos_rate < 0.9:
-        return 0.0
+        return 0.001
         
     # Cost should be extremely low
     cost_score = max(0.0, 1.0 - (state.current_cost / max(1.0, float(state.processed_jobs_count) * 0.02)))
     
     score = (cost_score * 0.8) + (qos_rate * 0.2)
-    return round(float(max(0.0, min(1.0, score))), 4)
+    return round(float(max(0.001, min(0.999, score))), 4)
 
 def grade_task_medium(state: SdsmpState) -> float:
     """
@@ -29,20 +29,20 @@ def grade_task_medium(state: SdsmpState) -> float:
     Prioritizes balancing cost and QoS equally.
     """
     if state.step_count < 10:
-        return 0.0
+        return 0.001
         
     qos_rate = 1.0
     if state.processed_jobs_count > 0:
         qos_rate = max(0.0, 1.0 - (state.qos_failed_count / state.processed_jobs_count))
         
     if qos_rate < 0.7:
-        return 0.0
+        return 0.001
         
     # Expect moderate cost
     cost_score = max(0.0, 1.0 - (state.current_cost / max(1.0, float(state.processed_jobs_count) * 0.05)))
     
     score = (cost_score * 0.5) + (qos_rate * 0.5)
-    return round(float(max(0.0, min(1.0, score))), 4)
+    return round(float(max(0.001, min(0.999, score))), 4)
 
 def grade_task_hard(state: SdsmpState) -> float:
     """
@@ -50,14 +50,14 @@ def grade_task_hard(state: SdsmpState) -> float:
     Prioritizes survival via pure QoS rate tracking under load.
     """
     if state.step_count < 10:
-        return 0.0
+        return 0.001
         
     if state.processed_jobs_count == 0:
-        return 0.0
+        return 0.001
         
     qos_rate = max(0.0, 1.0 - (state.qos_failed_count / state.processed_jobs_count))
     
     # Simple threshold survival score.
     # At high intensity, simply keeping QoS above 50% is a win due to Cannikin constraints.
     score = (qos_rate - 0.4) * 2.0
-    return round(float(max(0.0, min(1.0, score))), 4)
+    return round(float(max(0.001, min(0.999, score))), 4)
