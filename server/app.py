@@ -75,15 +75,19 @@ class StepRequest(BaseModel):
     parameters: Dict[str, Any] = {}
 
 @app.post("/reset")
-async def reset(req: Optional[ResetRequest] = Body(None)):
-    if req is None:
-        req = ResetRequest()
-    obs = _env.reset(seed=req.seed, task_id=req.task_id, episode_id=req.episode_id or None)
+async def reset(req: Optional[Dict[str, Any]] = Body(default_factory=dict)):
+    if not req:
+        req = {}
+    r = ResetRequest(**req)
+    obs = _env.reset(seed=r.seed, task_id=r.task_id, episode_id=r.episode_id or None)
     return obs.model_dump()
 
 @app.post("/step")
-async def step(req: StepRequest):
-    obs = _env.step({"command": req.command, "parameters": req.parameters})
+async def step(req: Optional[Dict[str, Any]] = Body(default_factory=dict)):
+    if not req:
+        req = {}
+    r = StepRequest(**req)
+    obs = _env.step({"command": r.command, "parameters": r.parameters})
     return obs.model_dump()
 
 @app.get("/state")

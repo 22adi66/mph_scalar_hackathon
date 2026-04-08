@@ -15,9 +15,13 @@ from openai import OpenAI
 from server.sdsmp_environment import SdsmpEnvironment, TASKS
 
 # Environment Constants
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
 BENCHMARK = "sdsmp_cybersecurity"
 MAX_STEPS = 20
 
@@ -161,11 +165,7 @@ def run_task(client: OpenAI, task_id: str) -> None:
 
 
 if __name__ == "__main__":
-    if not API_KEY:
-        print("Error: HF_TOKEN or API_KEY environment variable not set.", file=sys.stderr)
-        sys.exit(1)
-
-    client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
+    client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
     
     # Do not print ANYTHING else to stdout as it will break the grader validation
     for task_id in ["easy", "medium", "hard"]:
