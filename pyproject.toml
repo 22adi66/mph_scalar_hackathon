@@ -16,6 +16,7 @@ dependencies = [
     "numpy>=1.24.0",
     "websockets>=12.0",
     "python-multipart>=0.0.9",
+    "openenv-core>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +30,7 @@ train = [
 ]
 
 [project.scripts]
-sdsmp-server = "server.app:main"
+server = "server.app:main"
 
 [tool.setuptools]
 include-package-data = true
